@@ -6,15 +6,22 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Bong's Diary">
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#FDFCF8">
+    
+    <!-- PWA 설정을 위한 Manifest (인라인 생성) -->
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIkJvbmcncyBEaWFyeSIsCiAgInNob3J0X25hbWUiOiAiQm9uZyIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjRkRGQ0Y4IiwKICAidGhlbWVfY29sb3IiOiAiI0ZERkNGOCIKfQ==">
+    
     <link rel="apple-touch-icon" href="https://github.com/haboyo/diary3/blob/main/diary.jpg?raw=true&v=final">
     <link rel="icon" type="image/jpeg" href="https://github.com/haboyo/diary3/blob/main/diary.jpg?raw=true&v=final">
 
-    <title>Bong's Diary</title>
+    <title>Bong's Diary v3.7.17</title>
     
+    <!-- 오프라인을 위해 핵심 라이브러리 로드 (캐싱 대상) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
@@ -134,9 +141,40 @@
 <body>
     <div id="root" style="width: 100%; height: 100%;"></div>
 
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Service Worker를 이용한 오프라인 캐싱 스크립트 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    const CACHE_NAME = 'bongs-diary-cache-v3.7.17';
+                    const urlsToCache = [
+                        '/',
+                        window.location.href,
+                        'https://cdn.tailwindcss.com',
+                        'https://unpkg.com/lucide@latest',
+                        'https://unpkg.com/react@18/umd/react.production.min.js',
+                        'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+                        'https://unpkg.com/@babel/standalone/babel.min.js',
+                        'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap'
+                    ];
+
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+                        );
+                    });
+
+                    self.addEventListener('fetch', event => {
+                        event.respondWith(
+                            caches.match(event.request).then(response => response || fetch(event.request))
+                        );
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob));
+            });
+        }
+    </script>
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
@@ -705,7 +743,6 @@
                                             <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
                                         </div>
                                     </div>
-                                    {/* Bong's Diary Logo - 더 선명하게 수정된 부분 */}
                                     <div className="text-center py-6 border-t border-slate-50 opacity-40">
                                         <div className="cursive-title text-xl mb-1">{APP_NAME}</div>
                                         <p className="text-[9px] font-black uppercase tracking-widest">{APP_VERSION}</p>
@@ -770,17 +807,6 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-
-        // PWA Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(reg => {
-                    console.log('SW Registered');
-                }).catch(err => {
-                    console.log('SW Registration failed', err);
-                });
-            });
-        }
     </script>
 </body>
 </html>
