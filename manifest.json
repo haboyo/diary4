@@ -1,0 +1,23 @@
+{
+  "name": "Bong's Diary",
+  "short_name": "BongDiary",
+  "description": "Premium Private Journaling App",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDFCF8",
+  "theme_color": "#FDFCF8",
+  "icons": [
+    {
+      "src": "https://github.com/haboyo/diary3/blob/main/diary.jpg?raw=true",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://github.com/haboyo/diary3/blob/main/diary.jpg?raw=true",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
