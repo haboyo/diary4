@@ -8,20 +8,20 @@
     <meta name="apple-mobile-web-app-title" content="Bong's Diary">
     <meta name="theme-color" content="#FDFCF8">
     
-    <!-- PWA 설정을 위한 Manifest (인라인 생성) -->
-    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIkJvbmcncyBEaWFyeSIsCiAgInNob3J0X25hbWUiOiAiQm9uZyIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjRkRGQ0Y4IiwKICAidGhlbWVfY29sb3IiOiAiI0ZERkNGOCIKfQ==">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkJvbmcncyBEaWFyeSIsCiAgInNob3J0X25hbWUiOiAiQm9uZyIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjRkRGQ0Y4IiwKICAidGhlbWVfY29sb3IiOiAiI0ZERkNGOCIKfQ==">
     
     <link rel="apple-touch-icon" href="https://github.com/haboyo/diary3/blob/main/diary.jpg?raw=true&v=final">
     <link rel="icon" type="image/jpeg" href="https://github.com/haboyo/diary3/blob/main/diary.jpg?raw=true&v=final">
 
     <title>Bong's Diary v3.7.17</title>
     
-    <!-- 오프라인을 위해 핵심 라이브러리 로드 (캐싱 대상) -->
+    <!-- iOS 오프라인 안정성을 위해 CDN 순서 및 속성 최적화 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap');
@@ -41,6 +41,7 @@
             width: 100%;
             height: 100%;
             background-color: var(--bg-main);
+            -webkit-text-size-adjust: 100%;
         }
 
         body {
@@ -141,15 +142,14 @@
 <body>
     <div id="root" style="width: 100%; height: 100%;"></div>
 
-    <!-- Service Worker를 이용한 오프라인 캐싱 스크립트 -->
+    <!-- Service Worker for Persistent Offline Access -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                const swCode = `
-                    const CACHE_NAME = 'bongs-diary-cache-v3.7.17';
-                    const urlsToCache = [
+                const swContent = `
+                    const CACHE_NAME = 'bongs-diary-v3.7.17-cache';
+                    const ASSETS = [
                         '/',
-                        window.location.href,
                         'https://cdn.tailwindcss.com',
                         'https://unpkg.com/lucide@latest',
                         'https://unpkg.com/react@18/umd/react.production.min.js',
@@ -158,20 +158,44 @@
                         'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700;900&display=swap'
                     ];
 
-                    self.addEventListener('install', event => {
+                    self.addEventListener('install', (event) => {
                         event.waitUntil(
-                            caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+                            caches.open(CACHE_NAME).then((cache) => {
+                                return cache.addAll(ASSETS);
+                            })
                         );
+                        self.skipWaiting();
                     });
 
-                    self.addEventListener('fetch', event => {
+                    self.addEventListener('activate', (event) => {
+                        event.waitUntil(
+                            caches.keys().then((keys) => {
+                                return Promise.all(
+                                    keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+                                );
+                            })
+                        );
+                        self.clients.claim();
+                    });
+
+                    self.addEventListener('fetch', (event) => {
                         event.respondWith(
-                            caches.match(event.request).then(response => response || fetch(event.request))
+                            caches.match(event.request).then((cachedResponse) => {
+                                if (cachedResponse) return cachedResponse;
+                                return fetch(event.request).catch(() => {
+                                    if (event.request.mode === 'navigate') {
+                                        return caches.match('/');
+                                    }
+                                });
+                            })
                         );
                     });
                 `;
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                navigator.serviceWorker.register(URL.createObjectURL(blob));
+                const blob = new Blob([swContent], { type: 'text/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).then(() => {
+                    console.log('Service Worker Registered');
+                });
             });
         }
     </script>
